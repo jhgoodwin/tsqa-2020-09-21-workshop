@@ -264,3 +264,20 @@ dotnet restore --packages packages \
 docker-compose down; \
 docker-compose up --build --exit-code-from test
 ```
+
+---
+
+# Time permitting
+
+- .dockerignore
+- test artifacts
+
+---
+
+# Thank you
+
+by John Goodwin
+
+- Food sponsored by Metabolon
+- Take pic for my manager!
+- https://www.metabolon.com/who-we-are/careers
