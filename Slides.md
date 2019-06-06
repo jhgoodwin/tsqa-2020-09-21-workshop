@@ -133,6 +133,7 @@ IntegrationTest.Dockerfile
 FROM mcr.microsoft.com/dotnet/core/sdk:2.2
 WORKDIR /app
 COPY . .
+RUN chmod +x run-tests.sh
 
 ENV ConnectionStrings__Postgres ""
 
@@ -147,10 +148,6 @@ CMD ["./run-tests.sh"]
 #!/usr/bin/env bash
 dotnet test
 ```
-Then:
-```bash
-chmod +x run-tests.sh
-```
 
 ---
 
@@ -162,7 +159,7 @@ docker-compose down
 
 ---
 
-# Add to IntegrationTest.Dockerfile
+# Add to docker-compose.yml
 
 ```Dockerfile
   test:
@@ -225,10 +222,24 @@ namespace TrinugApi.Migrations
         }
         public override void Down()
         {
-            // this space intentionally left blank.
+            throw new NotImplementedException($"Down not implemented by design");
         }
     }
 }
+```
+
+---
+
+# Update docker-compose.yml
+
+```Dockerfile
+  test:
+    build:
+      context: ./
+      dockerfile: "IntegrationTest.Dockerfile"
+    environment:
+      - "ConnectionStrings__Postgres=Host=${COMPOSE_PROJECT_NAME:-citus}_master;Username=postgres"
+    depends_on: { worker: { condition: service_healthy } }
 ```
 
 ---
