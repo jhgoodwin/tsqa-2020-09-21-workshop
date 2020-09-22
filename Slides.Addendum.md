@@ -11,10 +11,10 @@
       dockerfile: "IntegrationTest.Dockerfile"
     user: "${UID:-0}:${GID:-0}"
     environment:
-      - "ConnectionStrings__Postgres=Host=${COMPOSE_PROJECT_NAME:-citus}_master;Username=postgres"
+      - "ConnectionStrings__Postgres=Host=db;Username=postgres;Password=example"
       - USER=${USER:-root}
     volumes:
       - ${COMMON_TESTRESULTSDIRECTORY:-./test-results}:/app/test-results
-    depends_on: { worker: { condition: service_healthy } }
+    depends_on: { db: { condition: service_healthy } }
 ```
 ---

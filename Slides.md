@@ -1,4 +1,5 @@
 ---
+title : docker-compose lab - John Goodwin
 theme : "black"
 transition: "fade"
 highlightTheme: "darkula"
@@ -8,7 +9,7 @@ slideNumber: true
 
 # docker-compose testing
 
-2018-06-05 TRINUG Hands-on Lab
+2020-09-24 TSQA Hands-on Lab
 
 - John Goodwin
 - john@jjgoodwin.com
@@ -21,8 +22,7 @@ slideNumber: true
 - Describe Lab Goals
 - Motivations
 - Create new ASP .NET Project
-- Intro to Citus
-- Create Citus Cluster
+- Intro to Postgres
 - Add test project
 - Bind test project
 - Add migrations
@@ -32,17 +32,16 @@ slideNumber: true
 
 # Resources
 
-- Download .NET Core 2.2.3 SDK
+- Download .NET Core 3.1 SDK
     - https://dotnet.microsoft.com/download
 - Install Docker for Desktop
     - https://www.docker.com/products/docker-desktop
 - Pull these images
 
     ```bash
-    docker pull mcr.microsoft.com/dotnet/core/sdk:2.2
-    docker pull mcr.microsoft.com/dotnet/core/aspnet:2.2
-    docker pull citusdata/citus:8.2.1
-    docker pull citusdata/membership-manager:0.2.0
+    docker pull mcr.microsoft.com/dotnet/core/sdk:3.1
+    docker pull mcr.microsoft.com/dotnet/core/aspnet:3.1
+    docker pull postgres:12.4
     ```
 
 ---
@@ -51,8 +50,8 @@ slideNumber: true
 
 - Docker tutorials
     - https://katacoda.com/
-- Citus Docker Repo
-    - https://github.com/citusdata/docker
+- Postgres
+    - https://www.postgresql.org/
 
 ---
 
@@ -60,7 +59,7 @@ slideNumber: true
 
 - Emphasis on hands-on for integration testing
 - Sideline esoteric discussions
-- Citus Intro
+- Postgres Intro
 - Emphasis on project/work patterns over design patterns
 
 ---
@@ -76,25 +75,28 @@ slideNumber: true
 # Create new ASP .NET Project
 
 ```bash
-dotnet new sln --name TrinugApi
-dotnet new webapi --name TrinugApi
-dotnet sln add TrinugApi
+dotnet new sln --name TsqaApi
+dotnet new webapi --name TsqaApi
+dotnet sln add TsqaApi
 ```
 
 ---
 
-# Intro to Citus 
+# Intro to Postgres
 
-https://www.citusdata.com/product
+<https://www.postgresql.org/about/>
 
-_(click See How)_
+<https://www.postgresql.org/about/featurematrix/>
 
 ---
 
-# Create Citus Cluster
+# Create Postgres DB
 
 ```bash
-curl -O https://raw.githubusercontent.com/citusdata/docker/master/docker-compose.yml
+curl --output docker-compose.yml \
+  -O https://raw.githubusercontent.com/docker-library/docs/9efeec18b6b2ed232cf0fbd3914b6211e16e242c/postgres/stack.yml
+sed -i 's/image: postgres/image: postgres:12.4/g' \
+  docker-compose.yml
 docker-compose up
 ```
 
@@ -103,7 +105,7 @@ docker-compose up
 # Connect
 
 ```bash
-docker exec -it citus_master psql -U postgres
+docker-compose exec db psql -U postgres
 ```
 Then:
 ```sql
@@ -119,8 +121,8 @@ select current_timestamp;
 # Add Test Project
 
 ```
-dotnet new xunit --name TrinugApi.Tests
-dotnet sln add TrinugApi.Tests
+dotnet new xunit --name TsqaApi.Tests
+dotnet sln add TsqaApi.Tests
 dotnet test
 ```
 
@@ -130,7 +132,7 @@ dotnet test
 
 IntegrationTest.Dockerfile
 ```Dockerfile
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1
 WORKDIR /app
 COPY . .
 RUN chmod +x run-tests.sh
@@ -147,6 +149,10 @@ CMD ["./run-tests.sh"]
 ```sh
 #!/usr/bin/env bash
 dotnet test
+exit $?
+```
+```sh
+chmod +x run-tests.sh
 ```
 
 ---
@@ -166,7 +172,8 @@ docker-compose down
     build:
       context: ./
       dockerfile: "IntegrationTest.Dockerfile"
-    depends_on: { worker: { condition: service_healthy } }
+    depends_on: 
+      - db
 ```
 
 ---
@@ -192,19 +199,19 @@ dotnet tool install -g FluentMigrator.DotNet.Cli
 # Add Migrations Project
 
 ```bash
-dotnet new classlib --name TrinugApi.Migrations
-dotnet sln add TrinugApi.Migrations
-dotnet add TrinugApi.Migrations package FluentMigrator
+dotnet new classlib --name TsqaApi.Migrations
+dotnet sln add TsqaApi.Migrations
+dotnet add TsqaApi.Migrations package FluentMigrator
 ```
 
 ---
 
-# Add MigrationInitial.cs
+# Add TsqaApi.Migrations/MigrationInitial.cs
 
 ```csharp
 using FluentMigrator;
 
-namespace TrinugApi.Migrations
+namespace TsqaApi.Migrations
 {
     /// <summary>
     /// This migration is just to prove that the migrations *CAN* work.
@@ -214,15 +221,15 @@ namespace TrinugApi.Migrations
     {
         public override void Up()
         {
-            Create.Table("trinug_temp_table")
+            Create.Table("tsqa_temp_table")
                 .WithColumn("distribution_id").AsCustom("serial").PrimaryKey()
                 .WithColumn("text").AsString().NotNullable();
-            Execute.Sql("SELECT create_distributed_table('trinug_temp_table', 'distribution_id')");
-            Delete.Table("trinug_temp_table");
+            Execute.Sql("SELECT create_distributed_table('tsqa_temp_table', 'distribution_id')");
+            Delete.Table("tsqa_temp_table");
         }
         public override void Down()
         {
-            throw new NotImplementedException($"Down not implemented by design");
+            throw new System.NotImplementedException($"Down not implemented by design");
         }
     }
 }
@@ -237,9 +244,10 @@ namespace TrinugApi.Migrations
     build:
       context: ./
       dockerfile: "IntegrationTest.Dockerfile"
+    depends_on:
+      - db
     environment:
-      - "ConnectionStrings__Postgres=Host=${COMPOSE_PROJECT_NAME:-citus}_master;Username=postgres"
-    depends_on: { worker: { condition: service_healthy } }
+      - "ConnectionStrings__Postgres=Host=db;Username=postgres;Password=example"
 ```
 
 ---
@@ -247,10 +255,10 @@ namespace TrinugApi.Migrations
 # Update IntegrationTest.Dockerfile
 
 ```Dockerfile
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1
 WORKDIR /app
 ENV ConnectionStrings__Postgres ""
-ENV MigratorDll "/app/TrinugApi.Migrations/bin/Debug/netstandard2.0/TrinugApi.Migrations.dll"
+ENV MigratorDll "/app/TsqaApi.Migrations/bin/Debug/netstandard2.0/TsqaApi.Migrations.dll"
 RUN dotnet tool install -g FluentMigrator.DotNet.Cli
 ENV HOME="/root"
 ENV PATH="${HOME}/.dotnet/tools:${PATH}"
@@ -272,6 +280,7 @@ dotnet restore --packages packages \
       -c $ConnectionStrings__Postgres \
       -a $MigratorDll \
     && dotnet test
+exit $?
 ```
 
 ---
@@ -296,6 +305,4 @@ docker-compose up --build --exit-code-from test
 
 by John Goodwin
 
-- Food sponsored by Metabolon
-- Take pic for my manager!
 - https://www.metabolon.com/who-we-are/careers
