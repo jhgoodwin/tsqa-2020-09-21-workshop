@@ -4,7 +4,7 @@
 ---
 
 # Update IntegrationTest.Dockerfile
-```Dockerfile
+```yaml
   test:
     build:
       context: ./
@@ -15,6 +15,7 @@
       - USER=${USER:-root}
     volumes:
       - ${COMMON_TESTRESULTSDIRECTORY:-./test-results}:/app/test-results
-    depends_on: { db: { condition: service_healthy } }
+    depends_on:
+      - db
 ```
 ---

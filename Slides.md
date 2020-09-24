@@ -167,7 +167,7 @@ docker-compose down
 
 # Add to docker-compose.yml
 
-```Dockerfile
+```yaml
   test:
     build:
       context: ./
@@ -224,7 +224,7 @@ namespace TsqaApi.Migrations
             Create.Table("tsqa_temp_table")
                 .WithColumn("distribution_id").AsCustom("serial").PrimaryKey()
                 .WithColumn("text").AsString().NotNullable();
-            Execute.Sql("SELECT create_distributed_table('tsqa_temp_table', 'distribution_id')");
+            Execute.Sql("SELECT * from tsqa_temp_table");
             Delete.Table("tsqa_temp_table");
         }
         public override void Down()
@@ -239,7 +239,7 @@ namespace TsqaApi.Migrations
 
 # Update docker-compose.yml
 
-```Dockerfile
+```yaml
   test:
     build:
       context: ./
@@ -291,6 +291,56 @@ exit $?
 docker-compose down; \
 docker-compose up --build --exit-code-from test
 ```
+
+---
+
+# Workshop errors
+
+```bash
+test_1     | Time Elapsed 00:00:01.56
+test_1     | It was not possible to find any compatible framework version
+test_1     | The framework 'Microsoft.NETCore.App', version '2.1.0' was not found.
+test_1     |   - The following frameworks were found:
+test_1     |       3.1.8 at [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+test_1     | 
+test_1     | You can resolve the problem by installing the specified framework and/or SDK.
+test_1     | 
+test_1     | The specified framework can be found at:
+test_1     |   - https://aka.ms/dotnet-core-applaunch?framework=Microsoft.NETCore.App&framework_version=2.1.0&arch=x64&rid=debian.10-x64
+tsqa-workshop_test_1 exited with code 150
+Aborting on container exit...
+Stopping tsqa-workshop_adminer_1 ... done
+Stopping tsqa-workshop_db_1      ... done
+```
+
+---
+
+# It worked!
+
+Script caught errors, but what is wrong?
+
+---
+
+# FluentMigrator SDK 2.1 dependency
+
+IntegrationTest.Dockerfile (insert above tool install)
+```Dockerfile
+RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && rm packages-microsoft-prod.deb \
+    && apt-get update \
+    && apt-get install -y apt-transport-https \
+    && apt-get update \
+    && apt-get install -y dotnet-sdk-2.1 \
+    && dotnet --help \
+    && rm -rf /var/lib/apt/lists/*/
+```
+
+---
+
+# Strategy works
+
+FluentMigrator issues show this is being worked on, but rather than be stuck, we can add a dependency on SDK 2.1 during testing until it's fixed, then remove it later. Success!
 
 ---
 
