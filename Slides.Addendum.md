@@ -3,7 +3,7 @@
 
 ---
 
-# Update IntegrationTest.Dockerfile
+# Update docker-compose.yml
 ```yaml
   test:
     build:
