@@ -523,7 +523,7 @@ exit $?
         <section >
             
             <h1><a id="user-content-add-to-docker-composeyml" class="anchor" href="#add-to-docker-composeyml" aria-hidden="true"></a>Add to docker-compose.yml</h1>
-<pre><code class="language-Dockerfile">  test:
+<pre><code class="language-yaml">  test:
     build:
       context: ./
       dockerfile: &quot;IntegrationTest.Dockerfile&quot;
@@ -594,7 +594,7 @@ namespace TsqaApi.Migrations
             Create.Table(&quot;tsqa_temp_table&quot;)
                 .WithColumn(&quot;distribution_id&quot;).AsCustom(&quot;serial&quot;).PrimaryKey()
                 .WithColumn(&quot;text&quot;).AsString().NotNullable();
-            Execute.Sql(&quot;SELECT create_distributed_table('tsqa_temp_table', 'distribution_id')&quot;);
+            Execute.Sql(&quot;SELECT * from tsqa_temp_table&quot;);
             Delete.Table(&quot;tsqa_temp_table&quot;);
         }
         public override void Down()
@@ -614,7 +614,7 @@ namespace TsqaApi.Migrations
         <section >
             
             <h1><a id="user-content-update-docker-composeyml" class="anchor" href="#update-docker-composeyml" aria-hidden="true"></a>Update docker-compose.yml</h1>
-<pre><code class="language-Dockerfile">  test:
+<pre><code class="language-yaml">  test:
     build:
       context: ./
       dockerfile: &quot;IntegrationTest.Dockerfile&quot;
@@ -677,6 +677,74 @@ exit $?
 <pre><code class="language-bash">docker-compose down; \
 docker-compose up --build --exit-code-from test
 </code></pre>
+
+            </section>
+    
+
+
+
+    
+        <section >
+            
+            <h1><a id="user-content-workshop-errors" class="anchor" href="#workshop-errors" aria-hidden="true"></a>Workshop errors</h1>
+<pre><code class="language-bash">test_1     | Time Elapsed 00:00:01.56
+test_1     | It was not possible to find any compatible framework version
+test_1     | The framework 'Microsoft.NETCore.App', version '2.1.0' was not found.
+test_1     |   - The following frameworks were found:
+test_1     |       3.1.8 at [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+test_1     | 
+test_1     | You can resolve the problem by installing the specified framework and/or SDK.
+test_1     | 
+test_1     | The specified framework can be found at:
+test_1     |   - https://aka.ms/dotnet-core-applaunch?framework=Microsoft.NETCore.App&amp;framework_version=2.1.0&amp;arch=x64&amp;rid=debian.10-x64
+tsqa-workshop_test_1 exited with code 150
+Aborting on container exit...
+Stopping tsqa-workshop_adminer_1 ... done
+Stopping tsqa-workshop_db_1      ... done
+</code></pre>
+
+            </section>
+    
+
+
+
+    
+        <section >
+            
+            <h1><a id="user-content-it-worked" class="anchor" href="#it-worked" aria-hidden="true"></a>It worked!</h1>
+<p>Script caught errors, but what is wrong?</p>
+
+            </section>
+    
+
+
+
+    
+        <section >
+            
+            <h1><a id="user-content-fluentmigrator-sdk-21-dependency" class="anchor" href="#fluentmigrator-sdk-21-dependency" aria-hidden="true"></a>FluentMigrator SDK 2.1 dependency</h1>
+<p>IntegrationTest.Dockerfile (insert above tool install)</p>
+<pre><code class="language-Dockerfile">RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    &amp;&amp; dpkg -i packages-microsoft-prod.deb \
+    &amp;&amp; rm packages-microsoft-prod.deb \
+    &amp;&amp; apt-get update \
+    &amp;&amp; apt-get install -y apt-transport-https \
+    &amp;&amp; apt-get update \
+    &amp;&amp; apt-get install -y dotnet-sdk-2.1 \
+    &amp;&amp; dotnet --help \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*/
+</code></pre>
+
+            </section>
+    
+
+
+
+    
+        <section >
+            
+            <h1><a id="user-content-strategy-works" class="anchor" href="#strategy-works" aria-hidden="true"></a>Strategy works</h1>
+<p>FluentMigrator issues show this is being worked on, but rather than be stuck, we can add a dependency on SDK 2.1 during testing until it’s fixed, then remove it later. Success!</p>
 
             </section>
     
